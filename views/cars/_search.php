@@ -51,7 +51,6 @@ $js = "function redirectCar() {
        uri = uri + 'transmission=' + transmission;
     }
     url = '/catalog' + url + uri ;
-    alert('Ok!' + url );
     window.location.href = encodeURI(url);
 }
 ";
