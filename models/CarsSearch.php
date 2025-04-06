@@ -10,64 +10,80 @@
 
 namespace app\models;
 
-use app\models\Cars;
+use app\models\interfaces\CarSearchInterface;
+use app\models\filters\CarFilter;
 use yii\data\ActiveDataProvider;
-use yii\helpers\ArrayHelper;
 use yii\base\Model;
 
-class CarsSearch extends Cars
+class CarsSearch extends Model implements CarSearchInterface
 {
-    const DEFAULT = 'default';
+    private $carFilter;
+    private $pageSize = 5;
 
-    public function search($params)
+    public function __construct(CarFilter $carFilter, $config = [])
     {
-        $query = static::find();
+        $this->carFilter = $carFilter;
+        parent::__construct($config);
+    }
 
-//        $this->load($params,"CarsSearch");
-        $this->load($params);
+    /**
+     * @inheritdoc
+     */
+    public function rules()
+    {
+        return $this->carFilter->rules();
+    }
 
-        $dataProvider = new ActiveDataProvider([
-            'query' => $query,
-            'pagination' => [
-                'pageSize' => 5,
-            ]
-        ]);
-
-
-        if (!$this->validate()) {
-            return $dataProvider;
+    /**
+     * @inheritdoc
+     */
+    public function search($params): ActiveDataProvider
+    {
+        $query = Cars::find();
+        
+        $this->carFilter->load($params);
+        
+        if (!$this->carFilter->validate()) {
+            return $this->createDataProvider($query);
         }
 
-//       $query->filterWhere(['LIKE','brand',$this->brand]);
-//       $query->andFilterWhere(['LIKE', 'model', $this->model]);
+        $query = $this->carFilter->applyFilters($query);
 
-        $query->filterWhere(['LIKE','brand',$this->brand]);
-        $query->andFilterWhere(['LIKE', 'model', $this->model]);
-        $query->andFilterWhere(['LIKE', 'engine', $this->engine]);
-        $query->andFilterWhere(['LIKE', 'transmission', $this->transmission]);
+        return $this->createDataProvider($query);
+    }
 
-        return $dataProvider;
+    /**
+     * Создает провайдер данных
+     * @param \yii\db\ActiveQuery $query
+     * @return ActiveDataProvider
+     */
+    private function createDataProvider($query): ActiveDataProvider
+    {
+        return new ActiveDataProvider([
+            'query' => $query,
+            'pagination' => [
+                'pageSize' => $this->pageSize,
+            ]
+        ]);
+    }
 
+    /**
+     * @inheritdoc
+     */
+    public function formName()
+    {
+        return '';
     }
 
     public static function tableName()
-      {
-         return 'cars';
-      }
+    {
+        return 'cars';
+    }
 
-   public function scenarios()
-     {
-          return [
-              self::DEFAULT => ['brand', 'model', 'engine', 'transmission'],
-          ]; 
-     
-     
-     
-     
-     }
-
-   public function formName() {
-	return '';
-   }
-
+    public function scenarios()
+    {
+        return [
+            self::DEFAULT => ['brand', 'model', 'engine', 'transmission'],
+        ]; 
+    }
 }
